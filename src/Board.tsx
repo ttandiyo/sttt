@@ -1,51 +1,29 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import useSound from "use-sound";
 import popSfx from "./assets/pop1.wav";
 
-const BOARD_HEIGHT = 5;
-const BOARD_WIDTH = 5;
+const BOARD_HEIGHT = 6;
+const BOARD_WIDTH = 6;
 const WIN_LINE_LEN = 3;
-// const PLAYERS = [1, 2];
-
+const NUM_PLAYERS = 2;
+const avatarChoices = [
+  "🐻",
+  "🐼",
+  "🐸",
+  "🐵",
+  "🐧",
+  "🐢",
+  "🐛",
+  "🐞",
+  "🐰",
+  "🥝",
+];
 // TODO: assert WIN_LINE_LEN <= BOARD_HEIGHT or BOARD_WIDTH
+
 // TODO: UI for adjusting rules
 // TODO: CPU player (ML would be cool)
 
-// class Array2D {
-//   constructor(height, width) {
-//     this.width = width;
-//     this.array = Array(height * width).fill(null);
-//   }
-
-//   get(x, y) {
-//     return this.array[y * this.width + x];
-//   }
-
-//   set(x, y, value) {
-//     this.array[y *]
-//   }
-// }
-
-// function genWinLines() {
-//   const winLines = [];
-
-//   // Horizontals
-//   for (let y = 0; y < BOARD_HEIGHT; y += 1) {
-//     winLines.push(
-//       Array.from({ length: BOARD_WIDTH }, (v, i) => y * BOARD_HEIGHT + i)
-//     );
-//   }
-
-//   // Verticals
-//   for (let x = 0; x < BOARD_WIDTH; x += 1) {
-//     winLines.push(
-//       Array.from({ length: BOARD_HEIGHT }, (v, i) => x + BOARD_WIDTH * i)
-//     );
-//   }
-//   return winLines;
-// }
-
-function calcScore(squares: any[][], player: number) {
+function calcScore(squares: number[][], player: number) {
   let score = 0;
   // Might be better to make a boolean matrix of some kind?
   // Check horizontals
@@ -72,21 +50,20 @@ function calcScore(squares: any[][], player: number) {
     }
   }
 
-  // TODO: check diagonals
-  // Do some math to check which diagonals are even possible
-
-  // Dumb brute force solution
+  // Check diagonals
 
   // Generate an array of starting coordinates
   const downRightStartCoords = [];
   const downLeftStartCoords = [];
 
   for (let x = 0; x < BOARD_WIDTH; x += 1) {
+    // TODO: Remove diagonals that are too short for a win line
     downRightStartCoords.push([x, 0]);
     downLeftStartCoords.push([x, 0]);
   }
   for (let y = 1; y < BOARD_HEIGHT; y += 1) {
     // y=1 so we don't check origin diagonals again
+    // TODO: Remove diagonals that are too short for a win line
     downRightStartCoords.push([0, y]);
     downLeftStartCoords.push([BOARD_WIDTH - 1, y]);
   }
@@ -126,6 +103,16 @@ function calcScore(squares: any[][], player: number) {
   return score;
 }
 
+function checkGameOver(squares: number[][]) {
+  for (let x = 0; x < BOARD_HEIGHT; x += 1) {
+    for (let y = 0; y < BOARD_WIDTH; y += 1)
+      if (squares[x][y] === 0) {
+        return false;
+      }
+  }
+  return true;
+}
+
 interface SquareProps {
   value: string;
   onSquareClick: () => void;
@@ -143,10 +130,14 @@ interface StateProps {
   winner: number;
 }
 
+// 0: no winner; -1: tie; n>0: winner's player number
+// TODO: make more elegant
 function State({ winner }: StateProps) {
   let text = "";
-  if (winner) {
+  if (winner > 0) {
     text = `${winner} wins!`;
+  } else if (winner === -1) {
+    text = "It's a tie!";
   } else {
     text = "No winner yet.";
   }
@@ -159,96 +150,39 @@ function State({ winner }: StateProps) {
 }
 
 interface ScoreBoardProps {
+  avatars: string[];
   scores: number[];
 }
 
-function ScoreBoard({ scores }: ScoreBoardProps) {
+function ScoreBoard({ avatars, scores }: ScoreBoardProps) {
   return (
     <div className="scoreboard">
       <div className="player1-score">
-        <h1>Player 1: {scores[0]}</h1>
+        <h1>
+          {avatars[0]} {scores[0]}
+        </h1>
       </div>
       <div className="player1-score">
-        <h1>Player 2: {scores[1]}</h1>
+        <h1>
+          {avatars[1]} {scores[1]}
+        </h1>
       </div>
     </div>
   );
 }
 
-export function Board() {
-  // React uses these state variables to maintain state between renders
-  // Local variables are lost on every re-render, and changes to local variables don't trigger renders
-  const initIsXTurn = true;
-  const initSquares = Array(BOARD_WIDTH).fill(Array(BOARD_HEIGHT).fill(0));
-  const initWinner = 0;
-  const initScores = [0, 0];
-  const [playPopSfx] = useSound(popSfx);
+interface AvatarSelectorProps {
+  avatars: string[];
+  avatarChoices: string[];
+  setAvatars: (avatars: string[]) => void;
+}
 
-  const [isXTurn, setIsXTurn] = useState<boolean>(initIsXTurn);
-  const [squares, setSquares] = useState<number[][]>(initSquares);
-  const [winner, setWinner] = useState<number>(initWinner);
-  const [scores, setScores] = useState<number[]>(initScores);
-
-  // let isXTurn = initIsXTurn;
-  // let squares = initSquares;
-  // let winner = initWinner;
-  // let scores = initScores;
-
-  function resetState() {
-    setIsXTurn(initIsXTurn);
-    setSquares(initSquares);
-    setWinner(initWinner);
-    setScores(initScores);
-    // isXTurn = initIsXTurn;
-    // squares = initSquares;
-    // winner = initWinner;
-    // scores = initScores;
-  }
-
-  function handleClick(x: number, y: number) {
-    if (squares[x][y]) {
-      console.log(`Square ${x}, ${y} already occupied.`);
-      return;
-    }
-
-    const currentPlayer = isXTurn ? 1 : 2;
-    // const nextSquares = squares.slice();
-    const nextSquares = squares.map((row) => [...row]); // make a deep copy of the squares array
-    nextSquares[x][y] = currentPlayer; // try using useEffect: calls function whenever a state variable is updated
-    setSquares(nextSquares); // React setState methods are asynchronous, update isn't guaranteed immediately
-    // squares = nextSquares;
-
-    // if (calcScore(nextSquares, currentPlayer)) {
-    //   // So use nextSquares instead of squares for check
-    //   setWinner(currentPlayer);
-    //   // TODO: Stop game
-    // }
-
-    setScores([calcScore(nextSquares, 1), calcScore(nextSquares, 2)]);
-    // scores = [calcScore(nextSquares, 1), calcScore(nextSquares, 2)];
-
-    playPopSfx();
-
-    setIsXTurn(!isXTurn);
-    // isXTurn = !isXTurn;
-  }
-
-  // Avatar selection
-  const [avatars, setAvatars] = useState(["🐻", "🐼"]);
-  const avatarChoices = [
-    "🐻",
-    "🐼",
-    "🐸",
-    "🐵",
-    "🐧",
-    "🐢",
-    "🐛",
-    "🐞",
-    "🐰",
-    "🥝",
-  ];
-
-  const avatarSelector = (
+function AvatarSelector({
+  avatars,
+  setAvatars,
+  avatarChoices,
+}: AvatarSelectorProps) {
+  return (
     <div className="avatar-selector">
       <label htmlFor="player1-avatar">Player 1:</label>
       <select
@@ -277,6 +211,72 @@ export function Board() {
       </select>
     </div>
   );
+}
+
+export function Board() {
+  // React uses these state variables to maintain state between renders
+  // Local variables are lost on every re-render, and changes to local variables don't trigger renders
+  const initCurrentPlayer = 1;
+  const initSquares = Array(BOARD_WIDTH).fill(Array(BOARD_HEIGHT).fill(0));
+  const initWinner = 0;
+  const initScores = [0, 0];
+
+  const [currentPlayer, setCurrentPlayer] = useState<number>(initCurrentPlayer);
+  const [squares, setSquares] = useState<number[][]>(initSquares);
+  const [winner, setWinner] = useState<number>(initWinner);
+  const [scores, setScores] = useState<number[]>(initScores);
+  const [playPopSfx] = useSound(popSfx);
+  const [avatars, setAvatars] = useState(["🐻", "🐼"]);
+
+  function resetState() {
+    setCurrentPlayer(initCurrentPlayer);
+    setSquares(initSquares);
+    setWinner(initWinner);
+    setScores(initScores);
+  }
+
+  function nextPlayer() {
+    let nextPlayer = currentPlayer + 1;
+    if (nextPlayer > NUM_PLAYERS) {
+      nextPlayer = 1;
+    }
+    setCurrentPlayer(nextPlayer);
+  }
+
+  function currentPlayerAvatar() {
+    return avatars[currentPlayer - 1];
+  }
+
+  function calcWinner() {
+    if (scores[0] > scores[1]) {
+      return 1;
+    } else if (scores[1] > scores[0]) {
+      return 2;
+    } else {
+      return -1;
+    }
+  }
+
+  function handleClick(x: number, y: number) {
+    if (squares[x][y]) {
+      console.log(`Square ${x}, ${y} already occupied.`);
+      return;
+    }
+
+    const nextSquares = squares.map((row) => [...row]); // make a deep copy of the squares array
+    nextSquares[x][y] = currentPlayer; // try using useEffect: calls function whenever a state variable is updated (apparently bad practice)
+    setSquares(nextSquares); // React setState methods are asynchronous, update isn't guaranteed immediately
+    setScores([calcScore(nextSquares, 1), calcScore(nextSquares, 2)]); // todo: only need to calc score for current player
+
+    playPopSfx();
+
+    if (checkGameOver(nextSquares)) {
+      setWinner(calcWinner());
+      // TODO: Stop game
+    }
+
+    nextPlayer();
+  }
 
   const boardElements = [];
   // TODO: Use a nested map to generate grid
@@ -308,14 +308,18 @@ export function Board() {
 
   return (
     <>
-      <ScoreBoard scores={scores} />
-
-      {boardElements}
+      <ScoreBoard avatars={avatars} scores={scores} />
+      <AvatarSelector
+        avatars={avatars}
+        avatarChoices={avatarChoices}
+        setAvatars={setAvatars}
+      />
+      <p>It's {currentPlayerAvatar()}'s turn.</p>
       <State winner={winner} />
-      {avatarSelector}
       <button type="button" className="reset" onClick={resetState}>
         Reset
       </button>
+      {boardElements}
     </>
   );
 }
