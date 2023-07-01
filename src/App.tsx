@@ -5,41 +5,56 @@ import { Board } from "./Board";
 
 import { useState, useEffect } from "react";
 
-function GetData() {
-  const [data, setData] = useState("");
-  useEffect(() => {
-    // only need to fetch '/home' because of proxy
-    fetch("http://localhost:8080/ping")
-      .then((res) => res.text())
-      .then((data) => setData(data));
-  }, [1]);
+async function getNewSessionID() {
+  const response = await fetch("http://localhost:8080/api/newSession");
+
+  if (!response.ok) {
+    throw new Error(`newSession: HTTP error ${response.status}`);
+  }
+  const sessionID = await response.json();
+  console.log(sessionID);
+  return sessionID.sessionID;
+}
+
+interface SessionDisplayProps {
+  sessionID: string;
+  newSession: () => void;
+}
+
+function SessionDisplay({ sessionID, newSession }: SessionDisplayProps) {
   return (
-    <>
-      <div>{data}</div>
-    </>
+    <div>
+      <p>Session ID: {sessionID}</p>
+      <button type="button" onClick={newSession}>
+        New Session
+      </button>
+    </div>
   );
 }
 
 function App() {
-  return (
-    // <div className="App">
-    //   <header className="App-header">
-    //     {/* <img src={logo} className="App-logo" alt="logo" /> */}
-    //     <p>STTT</p>
-    //     {/* <a
-    //       className="App-link"
-    //       href="https://reactjs.org"
-    //       target="_blank"
-    //       rel="noopener noreferrer"
-    //     >
-    //       Learn React
-    //     </a> */}
-    //   </header>
+  const [sessionID, setSessionID] = useState("");
 
-    // </div>
+  // useEffect(() => {
+  //   (async () => {
+  //     const sessionID = await getNewSessionID();
+  //     setSessionID(sessionID);
+  //   })();
+
+  //   return () => {
+  //     // called when component unmounts
+  //   };
+  // }, []);
+
+  async function newSession() {
+    const sessionID = await getNewSessionID();
+    setSessionID(sessionID);
+  }
+
+  return (
     <div>
       <Board />
-      <GetData />
+      {/* <SessionDisplay sessionID={sessionID} newSession={() => newSession()} /> */}
     </div>
   );
 }
