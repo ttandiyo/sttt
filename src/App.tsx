@@ -1,9 +1,8 @@
-import React from "react";
 // import logo from "./logo.svg";
-import "./App.css";
-import { Board } from "./Board";
+import "./app.css";
+import { Board } from "./board.tsx";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "preact/hooks";
 
 async function getNewSessionID() {
   const response = await fetch("http://localhost:8080/api/newSession");
@@ -32,7 +31,7 @@ function SessionDisplay({ sessionID, newSession }: SessionDisplayProps) {
   );
 }
 
-function App() {
+export function App() {
   const [sessionID, setSessionID] = useState("");
 
   // useEffect(() => {
@@ -58,5 +57,3 @@ function App() {
     </div>
   );
 }
-
-export default App;

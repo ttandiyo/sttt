@@ -1,4 +1,7 @@
-import { useState, useMemo, ReactNode, useRef, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import type { ComponentChildren } from "preact";
+// useSound's package.json doesn't export types properly yet
+// @ts-expect-error
 import useSound from "use-sound";
 import popSfx from "./assets/sounds/pop1.wav";
 
@@ -20,12 +23,9 @@ const BOARD_HEIGHT = 6;
 const BOARD_WIDTH = 6;
 const WIN_LINE_LEN = 3;
 const NUM_PLAYERS = 2;
-// let gridConfigStr = "1fr";
-// for (let i = 0; i < BOARD_WIDTH - 1; i += 1) {
-//   gridConfigStr += " 1fr";
-// }
 
 const gridConfigStr = "1fr ".repeat(BOARD_WIDTH);
+
 // const avatarChoices = ["🐻", "🐼", "🐸", "🐵", "🐧", "🐢", "🐞", "🐰", "🥝"];
 
 // const avatarData = {
@@ -171,10 +171,11 @@ function calcScore(squares: number[][], player: number) {
 
 function checkGameOver(squares: number[][]) {
   for (let x = 0; x < BOARD_HEIGHT; x += 1) {
-    for (let y = 0; y < BOARD_WIDTH; y += 1)
+    for (let y = 0; y < BOARD_WIDTH; y += 1) {
       if (squares[x][y] === 0) {
         return false;
       }
+    }
   }
   return true;
 }
@@ -257,13 +258,22 @@ function AvatarSelector({
   setAvatars,
   avatarChoices,
 }: AvatarSelectorProps) {
+  const onChangeHandler = (
+    selectElement: HTMLSelectElement,
+    playerNumber: number,
+  ) => {
+    const newAvatars = [...avatars];
+    newAvatars[playerNumber] = selectElement.selectedIndex;
+    setAvatars(newAvatars);
+  };
+
   return (
     <div>
       <div className="avatar-selector">
         <label htmlFor="player1-avatar">Player 1:</label>
         <select
           name="player1-avatar"
-          onChange={(e) => setAvatars([e.target.selectedIndex, avatars[1]])}
+          onChange={(e) => onChangeHandler(e.currentTarget, 0)}
           value={avatarChoices[avatars[0]].text}
         >
           {avatarChoices.map((avatar, index) => (
@@ -277,7 +287,7 @@ function AvatarSelector({
         <label htmlFor="player2-avatar">Player 2:</label>
         <select
           name="player2-avatar"
-          onChange={(e) => setAvatars([avatars[0], e.target.selectedIndex])}
+          onChange={(e) => onChangeHandler(e.currentTarget, 1)}
           value={avatarChoices[avatars[1]].text}
         >
           {avatarChoices.map((avatar, index) => (
@@ -293,7 +303,7 @@ function AvatarSelector({
 
 interface MenuProps {
   handleStart: () => void;
-  children?: ReactNode;
+  children?: ComponentChildren;
 }
 
 function Menu({ handleStart, children }: MenuProps) {
@@ -321,7 +331,8 @@ function Menu({ handleStart, children }: MenuProps) {
           </p>
         </div>
 
-        {/* <div className="player1-setup">
+        {
+          /* <div className="player1-setup">
           <div className="player-name">Player 1</div>
           <div className="player-avatar">
             <div className="avatar">
@@ -337,7 +348,8 @@ function Menu({ handleStart, children }: MenuProps) {
               <img src={catAvatar} />
             </div>
           </div>
-        </div> */}
+        </div> */
+        }
         {children}
 
         <div className="center-horiz">
@@ -369,7 +381,7 @@ export function Board() {
   const [timeLeft, setTimeLeft] = useState(initTimeLeft);
   const [gameOver, setGameOver] = useState(false);
 
-  const intervalRef = useRef<NodeJS.Timer>();
+  const intervalRef = useRef(0);
 
   function resetTimer() {
     setTimeLeft(initTimeLeft);
@@ -495,13 +507,13 @@ export function Board() {
           avatar={avatar}
           onSquareClick={() => handleClick(x, y)}
           key={y * BOARD_WIDTH + x}
-        />
+        />,
       );
     }
 
     boardElements.push(
       // <div className="board-row" key={y}>
-      <>{rowElements}</>
+      <>{rowElements}</>,
       // </div>
     );
   }
