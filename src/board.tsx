@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import type { ComponentChildren } from "preact";
-// useSound's package.json doesn't export types properly yet
-// @ts-expect-error
 import useSound from "use-sound";
 import popSfx from "./assets/sounds/pop1.wav";
 
@@ -260,7 +258,7 @@ function AvatarSelector({
 }: AvatarSelectorProps) {
   const onChangeHandler = (
     selectElement: HTMLSelectElement,
-    playerNumber: number,
+    playerNumber: number
   ) => {
     const newAvatars = [...avatars];
     newAvatars[playerNumber] = selectElement.selectedIndex;
@@ -331,8 +329,7 @@ function Menu({ handleStart, children }: MenuProps) {
           </p>
         </div>
 
-        {
-          /* <div className="player1-setup">
+        {/* <div className="player1-setup">
           <div className="player-name">Player 1</div>
           <div className="player-avatar">
             <div className="avatar">
@@ -348,8 +345,7 @@ function Menu({ handleStart, children }: MenuProps) {
               <img src={catAvatar} />
             </div>
           </div>
-        </div> */
-        }
+        </div> */}
         {children}
 
         <div className="center-horiz">
@@ -507,13 +503,13 @@ export function Board() {
           avatar={avatar}
           onSquareClick={() => handleClick(x, y)}
           key={y * BOARD_WIDTH + x}
-        />,
+        />
       );
     }
 
     boardElements.push(
       // <div className="board-row" key={y}>
-      <>{rowElements}</>,
+      <>{rowElements}</>
       // </div>
     );
   }
